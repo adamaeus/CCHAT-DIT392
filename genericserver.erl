@@ -1,11 +1,10 @@
 -module(genericserver).
--export([start/4, stop/1, request/2]).
+-export([start/3, stop/1, request/2]).
 
 %% Added "Server" as parameter for the server function.
-start(State, Handler, Server, From) ->
-    Pid = spawn( fun() -> server(State, Handler, Server)end),
-    register(Server, Pid),
-    From ! {server_reqistry, Pid}.
+start(State, Handler, From) ->
+    Pid = spawn( fun() -> server(State, Handler)end),
+    From ! Pid.
 
 
 stop(Server) ->
@@ -13,15 +12,15 @@ stop(Server) ->
     ok.
 
 %% Added parameter for the server function.
-server(State, Handler, Server) ->
+server(State, Handler) ->
     receive
         {request, From, Ref, Request} ->
             %% Also added server here for the handler.
-            case Handler(State, Request, Server) of
+            case Handler(State, Request) of
                 {reply, NewState, Result} ->
                     From ! {response, Ref, Result},
                     %% Added server for the recall of server function.
-                    server(NewState, Handler, Server)
+                    server(NewState, Handler)
             end;
         {stop, _From, _Ref} -> ok
     end.
