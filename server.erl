@@ -1,58 +1,33 @@
 -module(server).
--export([start/1, stop/1, status/1, test/1]).
+-export([start/1, stop/1, status/1, active_server/1]).
 
 % Start a new server process with the given name
 % Do not change the signature of this function.
 start(ServerAtom) ->
     % TODO Implement function
     % - Spawn a new process which waits for a message, handles it, then loops infinitely
-    Pid = spawn(fun() -> server(0) end),
-    register(ServerAtom, Pid),
-    Pid.
-
-% - Register this process to ServerAtom
-% - Return the process ID
-%not_implemented.
-
-% Stop the server process registered to the given name,
-% together with any other associated processes
-stop(ServerAtom) ->
-    ServerAtom ! {stop, self(), 0},
-    ok.
-% TODO Implement function
-% Return ok
-% not_implemented.
-
-
-status(ServerAtom) ->
-    Ref = make_ref(),
-    ServerAtom ! {status, self(), Ref},
+    genericserver:start(0, fun server_handler/3, ServerAtom, self()),
     receive
-        {current_status, Ref, Result} -> Result
-    end.
+        {server_reqistry, Pid} ->
+        register(ServerAtom, Pid),
+        Pid
+end.
 
-test(ServerAtom) ->
-    Ref = make_ref(),
-    ServerAtom ! {is_server_alive, self(), Ref},
-    receive
-        {response, Ref, Response} -> Response
-    end.
+stop(ServerAtom) -> genericserver:stop(ServerAtom).
 
-server(N) ->
-    receive
-        {start, From, Ref} ->
-            From ! started_server,
-            server(N);
-        {stop, From, Ref} ->
-            From ! ok,
-            server(N);
-        {status, From, Ref} ->
-            From ! {current_status, Ref, N},
-            server(N);
-        {is_server_alive, From, Ref} ->
-            From ! {response, Ref, alive},
-            server(N);
-        _ ->
-            undefined_message_call,
-            server(N)
-    end.
+status(ServerAtom) -> genericserver:request(ServerAtom, status).
+
+active_server(ServerAtom) -> genericserver:request(ServerAtom, started).
+
+%%% MAIN HANDLER (MAIN SWITCH %%%
+
+server_handler(State, Request, ServerAtom) ->
+    case Request of
+        started -> active_server_handler(State, {ServerAtom, started});
+        status -> status_handler(State, status)
+end.
+
+%%% HANDLERS %%%
+status_handler(State, status) -> {reply, State, State}.
+
+active_server_handler(State, started) -> {reply, State, started}.
