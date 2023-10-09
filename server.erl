@@ -4,6 +4,7 @@
 % Start a new server process with the given name
 % Do not change the signature of this function.
 start(ServerAtom) ->
+    genserver:start(ServerAtom, State, F).
     % TODO Implement function
     % - Spawn a new process which waits for a message, handles it, then loops infinitely
     % - Register this process to ServerAtom
