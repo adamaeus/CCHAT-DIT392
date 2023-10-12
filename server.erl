@@ -1,6 +1,7 @@
 -module(server).
 %11:43 debugging. Added export server_handler
 -export([start/1, stop/1, status/1, server_handler/2]).
+
 -record(server_state, {
     channels = []
 }).
@@ -40,6 +41,7 @@ server_handler(State, Data) ->
 status_handler(State, status) -> {reply, State, State}.
 
 join_handler(State, Channel, Nickname) ->
+    
     % Om metoden "check_channel_existing" returnerar true, alltså att kanalen finns,
     % då returneras "State" som här blir "NewState". Sedan går vi vidare och lägger till user i kanalen.
     NewState = check_channel_existing(State, Channel),
@@ -55,19 +57,18 @@ join_handler(State, Channel, Nickname) ->
 % Om true, då returneras State
 % Om false, då skapar man en ny channel.
 
-check_channel_existing(State, Channel) ->
-    % lists:keyfind är en inbyggd Erlang metod (från lib/package lists) som kan
-    % söka en lista efter en input. Vi söker alltså i State#server_state.channels efter
-    % #channel.name som matchar Channel.
+check_channel_existing(Channel, State) ->
+    ChannelList = State#server_state.channels,
+    find_in_channels(Channel, ChannelList, State).
 
-    case lists:keyfind(Channel, #channel.name, State#server_state.channels) of
-        % Om true, "do nothing" alltså, returnerar current State.
-        {Channel, _Users} ->
-            State;
-        %Om false, skapa ny kanal.
-        false ->
-            create_new_channel(Channel, State)
-    end.
+
+find_in_channels(Channel, [], State) ->
+    create_new_channel(Channel, State);
+find_in_channels(Channel, [ChName | RestChannels], State) when ChName == Channel ->
+    State;
+find_in_channels(Channel, [_OtherChannel | RestChannels], State) ->
+    find_in_channels(Channel, RestChannels, State).
+
 
 % Skapar en ny channel. Vi döper den initialt till NewChannel, vi
 % skriver värdet "name" till Channel (alltdå den kanal vi söker efter från början via genserver,

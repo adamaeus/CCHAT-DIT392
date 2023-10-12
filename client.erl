@@ -1,6 +1,8 @@
 -module(client).
 -export([handle/2, initial_state/3]).
--import(genserver, [request/2]).
+%-import(genserver, [request/2]).
+%-include("/home/adam/ComputerScience/Erlang/cchat/server.erl").
+
 
 % This record defines the structure of the state of a client.
 % Add whatever other fields you need.
@@ -34,8 +36,6 @@ handle(St, {join, Channel}) ->
     Server = St#client_st.server,
     Nickname = St#client_st.nick,
     genserver:request(Server, {join, Channel, Nickname}),
-    % TODO: Implement this function
-    % {reply, ok, St} ;
     {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}, St};
 
 % Leave channel
