@@ -2,7 +2,7 @@
 -export([start/1, stop/1, chat_handler/2]).
 
 -record(server_state,
- {channels = []}).
+ {channels = ["#doom"]}).
 
 % Logic server
 % Parameters match the generic server start function
@@ -18,12 +18,26 @@ start(ServerAtom) ->
 chat_handler(State, Data) ->
     case Data of
        {join, From, Channel, Nick} ->
-
+            join_server(State, Channel, From, Nick)
         end.
 
+% Check to see if channel exist or not
+% If exist -> join that channel
+% If not exist -> Create and join
+join_server(State, Channel, From, Nick) ->
+    Channels = State#server_state.channels,
+    io:fwrite("~p ~n", [Channel]),
+    case lists:member(Channel, Channels) of
+        true ->
+            %channel:join(Channel, Nick, From),
+            genserver:request(Channel, {join, Nick, From});
+        false ->
+            channel:start(Channel),
+            genserver:request(Channel, {join, Nick, From}),
+                NewChannels = [Channel | Channels],
+                #server_state{channels = NewChannels}
+                end.
 
-join_handler(State, Channel, From, Client) ->
-    Channels = #server_state.channels,
 
 
     
