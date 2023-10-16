@@ -1,14 +1,35 @@
 -module(server).
--export([start/1,stop/1]).
+-export([start/1, stop/1, chat_handler/2]).
 
+-record(server_state,
+ {channels = []}).
+
+% Logic server
+% Parameters match the generic server start function
 % Start a new server process with the given name
 % Do not change the signature of this function.
+ % ServerAtom is "shire" in our case.
 start(ServerAtom) ->
-    % TODO Implement function
-    % - Spawn a new process which waits for a message, handles it, then loops infinitely
-    % - Register this process to ServerAtom
-    % - Return the process ID
-    not_implemented.
+    genserver:start(ServerAtom, #server_state.channels, fun chat_handler/2).
+
+%   - takes 2 params : state, request message
+%   - returns a tuple: new state, response message
+%   - handler reply to genserver
+chat_handler(State, Data) ->
+    case Data of
+       {join, From, Channel, Nick} ->
+
+        end.
+
+
+join_handler(State, Channel, From, Client) ->
+    Channels = #server_state.channels,
+
+
+    
+
+
+
 
 % Stop the server process registered to the given name,
 % together with any other associated processes

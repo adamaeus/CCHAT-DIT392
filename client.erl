@@ -6,31 +6,37 @@
 -record(client_st, {
     gui, % atom of the GUI process
     nick, % nick/username of the client
-    server % atom of the chat server
+    server, % atom of the chat server
+    channels
 }).
 
+%Använda ListToAtom funktionen nånstans.
 % Return an initial state record. This is called from GUI.
 % Do not change the signature of this function.
 initial_state(Nick, GUIAtom, ServerAtom) ->
     #client_st{
         gui = GUIAtom,
         nick = Nick,
-        server = ServerAtom
+        server = ServerAtom,
+        channels = []
     }.
 
 % handle/2 handles each kind of request from GUI
 % Parameters:
 %   - the current state of the client (St)
 %   - request data from GUI
-% Must return a tuple {reply, Data, NewState}, where:
+%
 %   - Data is what is sent to GUI, either the atom `ok` or a tuple {error, Atom, "Error message"}
 %   - NewState is the updated state of the client
-
 % Join channel
+% Sends request via genserver request function
 handle(St, {join, Channel}) ->
-    % TODO: Implement this function
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "join not implemented"}, St} ;
+    % Variable to keep client's current server
+    Server = St#client_st.server,
+    genserver:request(Server, {join, self(), Channel, #client_st.nick}),
+    {reply, ok, St} ;
+
+    %{reply, {error, not_implemented, "join not implemented"}, St} ;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
