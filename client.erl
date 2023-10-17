@@ -33,9 +33,10 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 handle(St, {join, Channel}) ->
     % Variable to keep client's current server
     Server = St#client_st.server,
-    genserver:request(Server, {join, self(), Channel, #client_st.nick}),
+    Nickname = St#client_st.nick,
+    genserver:request(Server, {join, self(), Channel, Nickname}),
     {reply, ok, St} ;
-
+    % {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}, St};
     %{reply, {error, not_implemented, "join not implemented"}, St} ;
 
 % Leave channel
