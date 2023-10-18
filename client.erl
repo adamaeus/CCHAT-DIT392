@@ -10,6 +10,7 @@
     nick,
     % atom of the chat server
     server,
+
     channels
 }).
 
@@ -37,14 +38,13 @@ handle(St, {join, Channel}) ->
     % Variable to keep client's current server
     Server = St#client_st.server,
     Nickname = St#client_st.nick,
+
     genserver:request(Server, {join, self(), Channel, Nickname}),
     UpdatedChannelList = [Channel | St#client_st.channels],
     UpdatedState = St#client_st{channels = UpdatedChannelList},
 
     io:format("channel.list ~p", [UpdatedChannelList]),
     {reply, ok, UpdatedState};
-% {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}, St};
-%{reply, {error, not_implemented, "join not implemented"}, St} ;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
@@ -52,17 +52,31 @@ handle(St, {leave, Channel}) ->
     ChannelList = St#client_st.channels,
     case lists:member(Channel, ChannelList) of
         true ->
-            genserver:request(list_to_atom(Channel), {leave, self()});
+            genserver:request(list_to_atom(Channel), {leave, self()}),
+            {reply, ok, St};
         false ->
-            {reply, error_user_not_in_channel, St}
-    end,
-    {reply, ok, St};
+            {reply, error, St}
+    end;
+    
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "message sending not implemented"}, St};
+    ChannelList = St#client_st.channels,
+    case lists:member(Channel, ChannelList) of
+        true ->
+            genserver:request(list_to_atom(Channel), {message_send, Msg, self()}),
+            {reply, ok, St};
+        false ->
+            {reply, error, St}
+        end;
+
+
+
+
+
+
+
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
 handle(St, {nick, NewNick}) ->

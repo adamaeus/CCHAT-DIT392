@@ -18,10 +18,12 @@ start(Channel) ->
 
 channel_handler(State, Request) ->
     case Request of
-        {join, Nick, From} -> 
+        {join, Nick, From} ->
             addToChannel(State, Nick, From);
-        {leave, From} -> 
-            removeFromChannel(State, From)
+        {leave, From} ->
+            removeFromChannel(State, From);
+        {message_send, Msg, From} ->
+            sendMessage(State, From, Msg)
     end.
 
 removeFromChannel(State, From) ->
@@ -36,7 +38,26 @@ removeFromChannel(State, From) ->
 addToChannel(State, Nick, From) ->
     %register(From, Nick),
     %User = {From, Nick},
-    NewChannelList = [From | State#channel_state.clients],
+    NewChannelList = [{From, Nick} | State#channel_state.clients],
     io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
     NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
+
+    sendMessage(State, From, Msg) ->
+
+        Members = State#channel_state.clients,
+        lists:foreach(
+            fun(Member) ->
+                MemberPid = getFromValue(Member),
+                MemberNick = getNickValue(Member),
+                MemberPid ! {request, self(), make_ref(), {message_receive, State#channel_state.name, MemberNick, Msg}}
+            end,
+            Members),
+        {reply, ok, State}.
+       
+    % Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, From, Msg}}
+    
+
+
+    getFromValue({From, _}) -> From.
+    getNickValue({_, Nick}) -> Nick.

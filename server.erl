@@ -36,9 +36,9 @@ join_server(State, Channel, From, Nick) ->
     %NewChannels = 
     case lists:member(Channel, Channels) of
         true ->
-            State#server_state.channels;
+            Channels;
         false ->
-            channel:start(Channel), [Channel | Channels]
+            channel:start(Channel)
     end,
 
     ChannelResponse = genserver:request(list_to_atom(Channel), {join, Nick, From}),
@@ -49,8 +49,8 @@ join_server(State, Channel, From, Nick) ->
     % Kommer det inte bli ett uppdaterat state, utan ett samma state
     % som passeras runt. Detta pga funktionellt språk och alla variablar
     % (States) är statiska.
-    NewState = State#server_state{channels = NewChannels},
-    {reply, ChannelResponse, NewState}.
+    UpdatedState = State#server_state{channels = NewChannels},
+    {reply, ChannelResponse, UpdatedState}.
 
 % Stop the server process registered to the given name,
 % together with any other associated processes
