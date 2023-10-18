@@ -58,7 +58,8 @@ handle(St, {leave, Channel}) ->
     case lists:member(Channel, ChannelList) of
         true ->
             genserver:request(list_to_atom(Channel), {leave, self()}),
-            {reply, ok, St};
+            RemovedChannel = lists:delete(Channel, ChannelList),
+            {reply, ok, St#client_st{channels = RemovedChannel}};
         false ->
             {reply, {error, user_not_joined, Channel}, St}
     end;
