@@ -4,9 +4,12 @@
 % This record defines the structure of the state of a client.
 % Add whatever other fields you need.
 -record(client_st, {
-    gui, % atom of the GUI process
-    nick, % nick/username of the client
-    server, % atom of the chat server
+    % atom of the GUI process
+    gui,
+    % nick/username of the client
+    nick,
+    % atom of the chat server
+    server,
     channels
 }).
 
@@ -35,45 +38,52 @@ handle(St, {join, Channel}) ->
     Server = St#client_st.server,
     Nickname = St#client_st.nick,
     genserver:request(Server, {join, self(), Channel, Nickname}),
-    {reply, ok, St} ;
-    % {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}, St};
-    %{reply, {error, not_implemented, "join not implemented"}, St} ;
+    UpdatedChannelList = [Channel | St#client_st.channels],
+    UpdatedState = St#client_st{channels = UpdatedChannelList},
+
+    io:format("channel.list ~p", [UpdatedChannelList]),
+    {reply, ok, UpdatedState};
+% {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}, St};
+%{reply, {error, not_implemented, "join not implemented"}, St} ;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
     % TODO: Implement this function
+    Server = St#client_st.server,
+    ChannelList = St#client_st.channels,
+    case lists:member(Channel, ChannelList) of
+        true ->
+            genserver:request(list_to_atom(Channel), {leave, self()});
+        false ->
+            {reply, error_user_not_in_channel, St}
+    end,
+    
     % {reply, ok, St} ;
-    {reply, {error, not_implemented, "leave not implemented"}, St} ;
-
+    {reply, {error, not_implemented, "leave not implemented"}, St};
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
-    {reply, {error, not_implemented, "message sending not implemented"}, St} ;
-
+    {reply, {error, not_implemented, "message sending not implemented"}, St};
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
 handle(St, {nick, NewNick}) ->
-    {reply, ok, St#client_st{nick = NewNick}} ;
-
+    {reply, ok, St#client_st{nick = NewNick}};
 % ---------------------------------------------------------------------------
 % The cases below do not need to be changed...
 % But you should understand how they work!
 
 % Get current nick
 handle(St, whoami) ->
-    {reply, St#client_st.nick, St} ;
-
+    {reply, St#client_st.nick, St};
 % Incoming message (from channel, to GUI)
 handle(St = #client_st{gui = GUI}, {message_receive, Channel, Nick, Msg}) ->
-    gen_server:call(GUI, {message_receive, Channel, Nick++"> "++Msg}),
-    {reply, ok, St} ;
-
+    gen_server:call(GUI, {message_receive, Channel, Nick ++ "> " ++ Msg}),
+    {reply, ok, St};
 % Quit client via GUI
 handle(St, quit) ->
     % Any cleanup should happen here, but this is optional
-    {reply, ok, St} ;
-
+    {reply, ok, St};
 % Catch-all for any unhandled requests
 handle(St, Data) ->
-    {reply, {error, not_implemented, "Client does not handle this command"}, St} .
+    {reply, {error, not_implemented, "Client does not handle this command"}, St}.

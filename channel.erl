@@ -18,14 +18,29 @@ start(Channel) ->
 
 channel_handler(State, Request) ->
     case Request of
-        {join, Nick, From} -> addToChannel(State, Nick, From),
-            {reply, user_added, State#channel_state.clients} %Added State
+        {join, Nick, From} -> addToChannel(State, Nick, From);
+           % {reply, user_added, State#channel_state.clients}; %Added State
+        {leave, From} -> removeFromChannel(State, From)
+           % {reply, user_removed, State#channel_state.clients}
     end.
+
+removeFromChannel (State, From) ->
+   % io:format("removeFromChannel.channel.CLientList ~p~n", [State#channel_state.clients]),
+    io:format("removeFromChannel.channel.from ~p~n", [From]),
+    io:format("channelState ~p~n", [State]),
+    NewChannelList = lists:delete(From, State#channel_state.clients),
+    NewState = State#channel_state{clients = NewChannelList},
+    io:format("channelState ~p~n", [NewState]),
+    {reply, ok, NewState}.
 
 
 
 addToChannel(State, Nick, From) ->
-    %register(Nick, From),
-    %User = {Nick, From},
+    %register(From, Nick),
+    %User = {From, Nick},
     NewChannelList = [From | State#channel_state.clients],
-    State#channel_state{clients = NewChannelList}.
+    io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
+    io:format("addToChannel.channel.From-Nick ~p~n", [{From, Nick}]),
+    NewState = State#channel_state{clients = NewChannelList},
+    {reply, ok, NewState}.
+    
