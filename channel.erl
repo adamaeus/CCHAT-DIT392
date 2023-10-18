@@ -36,24 +36,30 @@ removeFromChannel(State, From) ->
     {reply, ok, NewState}.
 
 addToChannel(State, Nick, From) ->
-    %register(From, Nick),
-    %User = {From, Nick},
-    NewChannelList = [{From, Nick} | State#channel_state.clients],
+    %register(Nick, From),
+    User = {From, Nick},
+    NewChannelList = [{From,Nick }| State#channel_state.clients],
     io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
     NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
 
     sendMessage(State, From, Msg) ->
-
         Members = State#channel_state.clients,
-        lists:foreach(
-            fun(Member) ->
-                MemberPid = getFromValue(Member),
-                MemberNick = getNickValue(Member),
-                MemberPid ! {request, self(), make_ref(), {message_receive, State#channel_state.name, MemberNick, Msg}}
-            end,
-            Members),
-        {reply, ok, State}.
+        User = lists:keyfind(From, 1, Members),  % Try to find the user by From
+        case User of
+            false ->  % User not found
+                {reply, error, State};
+            {_, Nick} ->  % User found
+                NewMembers = lists:delete(User, Members),
+                lists:foreach(
+                    fun(Member) ->
+                        MemberPid = getFromValue(Member),
+                        MemberNick = getNickValue(Member),
+                        MemberPid ! {request, self(), make_ref(), {message_receive, State#channel_state.name, MemberNick, Msg}}
+                    end,
+                    NewMembers),
+                {reply, ok, State#channel_state{clients = NewMembers}}
+        end.
        
     % Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, From, Msg}}
     
