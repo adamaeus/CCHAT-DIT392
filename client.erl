@@ -54,7 +54,7 @@ handle(St, {leave, Channel}) ->
             genserver:request(list_to_atom(Channel), {leave, self()}),
             {reply, ok, St};
         false ->
-            {reply, error, St}
+            {reply, {error, user_not_joined, Channel}, St}
     end;
     
 
