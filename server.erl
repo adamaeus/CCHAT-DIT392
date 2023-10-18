@@ -4,11 +4,8 @@
 -record(server_state, {
     channels
 }).
-
-%Använda ListToAtom funktionen nånstans.
 % Return an initial state record. This is called from GUI.
 % Do not change the signature of this function.
-
 initial_state() ->
     #server_state{
         channels = []
@@ -36,15 +33,17 @@ chat_handler(State, Data) ->
 % If not exist -> Create and join
 join_server(State, Channel, From, Nick) ->
     Channels = State#server_state.channels,
+    %NewChannels = 
     case lists:member(Channel, Channels) of
         true ->
-            io:fwrite("true");
+            State#server_state.channels;
         false ->
-            channel:start(Channel)
+            channel:start(Channel), [Channel | Channels]
     end,
 
     ChannelResponse = genserver:request(list_to_atom(Channel), {join, Nick, From}),
     NewChannels = [Channel | Channels],
+
     % Viktigt att inse här är att man måste skapa ett nytt state
     % om man försöker passera samma "State" från input som output
     % Kommer det inte bli ett uppdaterat state, utan ett samma state

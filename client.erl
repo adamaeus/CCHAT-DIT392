@@ -49,7 +49,6 @@ handle(St, {join, Channel}) ->
 % Leave channel
 handle(St, {leave, Channel}) ->
     % TODO: Implement this function
-    Server = St#client_st.server,
     ChannelList = St#client_st.channels,
     case lists:member(Channel, ChannelList) of
         true ->
@@ -57,9 +56,8 @@ handle(St, {leave, Channel}) ->
         false ->
             {reply, error_user_not_in_channel, St}
     end,
-    
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "leave not implemented"}, St};
+    {reply, ok, St};
+
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
