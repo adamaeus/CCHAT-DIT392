@@ -48,7 +48,6 @@ handle(St, {join, Channel}) ->
 
 % Leave channel
 handle(St, {leave, Channel}) ->
-    % TODO: Implement this function
     ChannelList = St#client_st.channels,
     case lists:member(Channel, ChannelList) of
         true ->
