@@ -31,25 +31,29 @@ channel_already_joined(St, Channel) ->
     ChannelList = St#client_st.channels,
     lists:member(Channel, ChannelList).
 
+add_channel_to_channels(Channel, St) ->
+    ChannelList = St#client_st.channels,
+    UpdatedChannelList = [Channel | ChannelList],
+    St#client_st{channels = UpdatedChannelList}.
+
 %----------------------------------------------------------------
 
 handle(St, {join, Channel}) ->
     Server = St#client_st.server,
-
     Nickname = St#client_st.nick,
 
     case channel_already_joined(St, Channel) of
         true ->
             {reply, {error, user_already_joined, "Channel already joined"}, St};
         false ->
-            genserver:request(Server, {join, self(), Channel, Nickname}),
-
-            UpdatedChannelList = [Channel | St#client_st.channels],
-
-            UpdatedState = St#client_st{channels = UpdatedChannelList},
-            {reply, ok, UpdatedState}
+            case catch genserver:request(Server, {join, self(), Channel, Nickname}) of
+                {'EXIT', _Reason} ->
+                    {reply, {error, server_not_reached, "Server not reached"}, St};
+                {reply, Ref, Result} ->
+                    UpdatedState = add_channel_to_channels(Channel, St),
+                    {reply, ok, UpdatedState}
+            end
     end;
-
 
 
 % Leave channel
@@ -63,14 +67,11 @@ handle(St, {leave, Channel}) ->
         false ->
             {reply, {error, user_not_joined, Channel}, St}
     end;
-
-
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
     ChannelList = St#client_st.channels,
     Nick = St#client_st.nick,
-    
     case lists:member(Channel, ChannelList) of
         true ->
             genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),

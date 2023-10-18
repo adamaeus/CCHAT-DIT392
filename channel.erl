@@ -27,19 +27,14 @@ channel_handler(State, Request) ->
     end.
 
 removeFromChannel(State, From) ->
-    % io:format("removeFromChannel.channel.CLientList ~p~n", [State#channel_state.clients]),
-    io:format("removeFromChannel.channel.from ~p~n", [From]),
-    io:format("channelState ~p~n", [State]),
     NewChannelList = lists:delete(From, State#channel_state.clients),
     NewState = State#channel_state{clients = NewChannelList},
-    io:format("channelState ~p~n", [NewState]),
     {reply, ok, NewState}.
 
 addToChannel(State, Nick, From) ->
     %register(From, Nick),
     %User = {From, Nick},
     NewChannelList = [From| State#channel_state.clients],
-    io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
     NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
 
@@ -53,9 +48,7 @@ addToChannel(State, Nick, From) ->
             NewList),
         {reply, ok, State}.
        
-    % Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, From, Msg}}
+   
     
-
-
-    getFromValue({From, _}) -> From.
-    getNickValue({_, Nick}) -> Nick.
+    %getFromValue({From, _}) -> From.
+    %getNickValue({_, Nick}) -> Nick.
