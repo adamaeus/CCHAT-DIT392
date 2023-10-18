@@ -25,26 +25,32 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
         channels = []
     }.
 
-% handle/2 handles each kind of request from GUI
-% Parameters:
-%   - the current state of the client (St)
-%   - request data from GUI
-%
-%   - Data is what is sent to GUI, either the atom `ok` or a tuple {error, Atom, "Error message"}
-%   - NewState is the updated state of the client
-% Join channel
-% Sends request via genserver request function
+%------------------------- FOR TESTS -----------------------------
+
+channel_already_joined(St, Channel) ->
+    ChannelList = St#client_st.channels,
+    lists:member(Channel, ChannelList).
+
+%----------------------------------------------------------------
+
 handle(St, {join, Channel}) ->
-    % Variable to keep client's current server
     Server = St#client_st.server,
+
     Nickname = St#client_st.nick,
 
-    genserver:request(Server, {join, self(), Channel, Nickname}),
-    UpdatedChannelList = [Channel | St#client_st.channels],
-    UpdatedState = St#client_st{channels = UpdatedChannelList},
+    case channel_already_joined(St, Channel) of
+        true ->
+            {reply, {error, user_already_joined, "Channel already joined"}, St};
+        false ->
+            genserver:request(Server, {join, self(), Channel, Nickname}),
 
-    io:format("channel.list ~p", [UpdatedChannelList]),
-    {reply, ok, UpdatedState};
+            UpdatedChannelList = [Channel | St#client_st.channels],
+
+            UpdatedState = St#client_st{channels = UpdatedChannelList},
+            {reply, ok, UpdatedState}
+    end;
+
+
 
 % Leave channel
 handle(St, {leave, Channel}) ->
@@ -57,8 +63,6 @@ handle(St, {leave, Channel}) ->
         false ->
             {reply, error, St}
     end;
-    
-
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
@@ -70,14 +74,7 @@ handle(St, {message_send, Channel, Msg}) ->
             {reply, ok, St};
         false ->
             {reply, error, St}
-        end;
-
-
-
-
-
-
-
+    end;
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
 handle(St, {nick, NewNick}) ->
