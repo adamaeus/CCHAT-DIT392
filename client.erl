@@ -54,14 +54,13 @@ handle(St, {join, Channel}) ->
 
 % Leave channel
 handle(St, {leave, Channel}) ->
-    % TODO: Implement this function
     ChannelList = St#client_st.channels,
     case lists:member(Channel, ChannelList) of
         true ->
             genserver:request(list_to_atom(Channel), {leave, self()}),
             {reply, ok, St};
         false ->
-            {reply, error, St}
+            {reply, {error, user_not_joined, Channel}, St}
     end;
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
