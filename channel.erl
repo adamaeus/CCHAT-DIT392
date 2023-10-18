@@ -22,8 +22,8 @@ channel_handler(State, Request) ->
             addToChannel(State, Nick, From);
         {leave, From} ->
             removeFromChannel(State, From);
-        {message_send, Msg, From} ->
-            sendMessage(State, From, Msg)
+        {message_send, Msg, From, Nick} ->
+            sendMessage(State, From, Msg, Nick)
     end.
 
 removeFromChannel(State, From) ->
@@ -38,21 +38,19 @@ removeFromChannel(State, From) ->
 addToChannel(State, Nick, From) ->
     %register(From, Nick),
     %User = {From, Nick},
-    NewChannelList = [{From, Nick} | State#channel_state.clients],
+    NewChannelList = [From| State#channel_state.clients],
     io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
     NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
 
-    sendMessage(State, From, Msg) ->
-
-        Members = State#channel_state.clients,
+    sendMessage(State, From, Msg, Nick) ->
+        NewList = lists:delete(From, State#channel_state.clients),
         lists:foreach(
             fun(Member) ->
-                MemberPid = getFromValue(Member),
-                MemberNick = getNickValue(Member),
-                MemberPid ! {request, self(), make_ref(), {message_receive, State#channel_state.name, MemberNick, Msg}}
+                %MemberPid = getFromValue(Member),
+                Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, Nick, Msg}}
             end,
-            Members),
+            NewList),
         {reply, ok, State}.
        
     % Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, From, Msg}}

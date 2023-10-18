@@ -63,9 +63,10 @@ handle(St, {leave, Channel}) ->
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
     ChannelList = St#client_st.channels,
+    Nick = St#client_st.nick,
     case lists:member(Channel, ChannelList) of
         true ->
-            genserver:request(list_to_atom(Channel), {message_send, Msg, self()}),
+            genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
             {reply, ok, St};
         false ->
             {reply, error, St}
