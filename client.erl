@@ -72,7 +72,7 @@ handle(St, {message_send, Channel, Msg}) ->
             genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
             {reply, ok, St};
         false ->
-            {reply, error, St}
+            {reply, {error, user_not_joined, Channel}, St}
     end;
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
