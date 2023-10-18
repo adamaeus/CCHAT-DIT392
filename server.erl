@@ -1,8 +1,13 @@
 -module(server).
 -export([start/1, stop/1, chat_handler/2]).
 
--record(server_state,
- {channels = ["#doom"]}).
+-record(server_state, {channels}).
+
+initial_state() ->
+    #server_state{
+       channels = []
+    }.
+
 
 % Logic server
 % Parameters match the generic server start function
@@ -10,7 +15,9 @@
 % Do not change the signature of this function.
  % ServerAtom is "shire" in our case.
 start(ServerAtom) ->
-    genserver:start(ServerAtom, #server_state.channels, fun chat_handler/2).
+    State = initial_state(),
+    io:format("module server, start function, print State ~p" , [State]),
+    genserver:start(ServerAtom, State, fun chat_handler/2).
 
 %   - takes 2 params : state, request message
 %   - returns a tuple: new state, response message
@@ -29,14 +36,17 @@ join_server(State, Channel, From, Nick) ->
     io:fwrite("~p ~n", [Channel]),
     case lists:member(Channel, Channels) of
         true ->
-            %channel:join(Channel, Nick, From),
-            genserver:request(Channel, {join, Nick, From});
+            io:fwrite("true");
+         %   genserver:request(Channel, {join, Nick, From});
         false ->
-            channel:start(Channel),
-            genserver:request(Channel, {join, Nick, From}),
-                NewChannels = [Channel | Channels],
-                #server_state{channels = NewChannels}
-                end.
+            channel:start(Channel)
+        %    genserver:request(Channel, {join, Nick, From}),
+    end,
+    ReplyToGenServer = genserver:request(list_to_atom(Channel), {join, Nick, From}),
+    NewChannels = [Channel | Channels],
+    % update server state
+    State#server_state{channels = NewChannels},
+    {reply, ReplyToGenServer, State}.
 
 
 
