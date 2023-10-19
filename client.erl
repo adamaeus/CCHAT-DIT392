@@ -14,7 +14,6 @@
     channels
 }).
 
-%Använda ListToAtom funktionen nånstans.
 % Return an initial state record. This is called from GUI.
 % Do not change the signature of this function.
 initial_state(Nick, GUIAtom, ServerAtom) ->

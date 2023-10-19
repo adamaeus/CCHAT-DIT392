@@ -23,39 +23,33 @@ channel_handler(State, Request) ->
         {leave, From} ->
             removeFromChannel(State, From);
         {message_send, Msg, From, Nick} ->
-            sendMessage(State, From, Msg, Nick)
+            messageRecieve(State, From, Msg, Nick)
     end.
 
 removeFromChannel(State, From) ->
-    % io:format("removeFromChannel.channel.CLientList ~p~n", [State#channel_state.clients]),
-    io:format("removeFromChannel.channel.from ~p~n", [From]),
-    io:format("channelState ~p~n", [State]),
     NewChannelList = lists:delete(From, State#channel_state.clients),
     NewState = State#channel_state{clients = NewChannelList},
-    io:format("channelState ~p~n", [NewState]),
     {reply, ok, NewState}.
 
 addToChannel(State, Nick, From) ->
     %register(From, Nick),
     %User = {From, Nick},
-    NewChannelList = [From| State#channel_state.clients],
-    io:format("addToChannel.channel.NewChannelList ~p~n", [NewChannelList]),
+    NewChannelList = [From | State#channel_state.clients],
     NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
 
-    sendMessage(State, From, Msg, Nick) ->
-        NewList = lists:delete(From, State#channel_state.clients),
-        lists:foreach(
-            fun(Member) ->
-                %MemberPid = getFromValue(Member),
-                Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, Nick, Msg}}
-            end,
-            NewList),
-        {reply, ok, State}.
-       
-    % Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, From, Msg}}
-    
 
+    messageRecieve(State, From, Msg, Nick) ->
+    NewList = lists:delete(From, State#channel_state.clients),
+    lists:foreach(
+        fun(Member) ->
+            Member !
+                {request, self(), make_ref(),
+                    {message_receive, State#channel_state.name, Nick, Msg}}
+        end,
+        NewList
+    ),
+    {reply, ok, State}.
 
-    getFromValue({From, _}) -> From.
-    getNickValue({_, Nick}) -> Nick.
+%getFromValue({From, _}) -> From.
+    %getNickValue({_, Nick}) -> Nick.
