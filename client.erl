@@ -10,11 +10,10 @@
     nick,
     % atom of the chat server
     server,
-
+    % atom of the channels a client has joined
     channels
 }).
 
-%Använda ListToAtom funktionen nånstans.
 % Return an initial state record. This is called from GUI.
 % Do not change the signature of this function.
 initial_state(Nick, GUIAtom, ServerAtom) ->
@@ -27,57 +26,76 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 
 %------------------------- FOR TESTS -----------------------------
 
-channel_already_joined(St, Channel) ->
+% Boolean function that checks if channel is already in the channel list
+channel_already_in_client_channel_list(St, Channel) ->
+    % current channels saved in variable
     ChannelList = St#client_st.channels,
+    % check if channel is a member of current channel list
     lists:member(Channel, ChannelList).
 
 %----------------------------------------------------------------
 
+% Join channel
 handle(St, {join, Channel}) ->
+    % variable assigned to the atom of the server
     Server = St#client_st.server,
-
+    % variable assigned to the nick/username atom of the client
     Nickname = St#client_st.nick,
-
-    case channel_already_joined(St, Channel) of
+    % pattern matching
+    case channel_already_in_client_channel_list(St, Channel) of
         true ->
+            % client handle sends this reply to gui
             {reply, {error, user_already_joined, "Channel already joined"}, St};
+        % if channel is not in the client channel list
         false ->
+            % client send request to genserver to join channel via chat_handler in server module
             genserver:request(Server, {join, self(), Channel, Nickname}),
-
+            % channel is added to the clients channel list and saved in a variable
             UpdatedChannelList = [Channel | St#client_st.channels],
-
+            % state is updated/overwritten with the updated list
             UpdatedState = St#client_st{channels = UpdatedChannelList},
+            % client handle sends reply with updated state to gui
             {reply, ok, UpdatedState}
     end;
 
 
-
 % Leave channel
 handle(St, {leave, Channel}) ->
+    % current channels saved in variable
     ChannelList = St#client_st.channels,
-    case lists:member(Channel, ChannelList) of
+    % pattern matching
+    case channel_already_in_client_channel_list(St, Channel) of
         true ->
+            % requesting genserver to leave channel via channel_handler in channel module
             genserver:request(list_to_atom(Channel), {leave, self()}),
+            % list with the channel removed saved in variable
             RemovedChannel = lists:delete(Channel, ChannelList),
+            % client handle sends reply with updated state to gui
             {reply, ok, St#client_st{channels = RemovedChannel}};
+        % if channel is not a member of channel list
         false ->
+            % client handle sends reply to gui with current state
             {reply, {error, user_not_joined, Channel}, St}
     end;
-
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
-    % TODO: Implement this function
-    ChannelList = St#client_st.channels,
+    % nickname saved in variable
     Nick = St#client_st.nick,
-    
-    case lists:member(Channel, ChannelList) of
+    % pattern matching
+    case channel_already_in_client_channel_list(St, Channel) of
+        % if the channel is in the list of the clients currently joined channels
         true ->
-            genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
-            {reply, ok, St};
+            % catch keyword captures all types of exceptions on top of the good results
+             genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
+                % if an exit message is sent from the genserver
+
+                {reply, ok, St};
         false ->
-            {reply, {error, user_not_joined, Channel}, St}
+            {reply, {error,user_not_joined, "Can't send message, user not in channel"}, St}
     end;
+
+
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
 handle(St, {nick, NewNick}) ->

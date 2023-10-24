@@ -24,41 +24,35 @@ start(ServerAtom) ->
 %   - handler reply to genserver
 chat_handler(State, Data) ->
     case Data of
+    % when Data pattern match to
         {join, From, Channel, Nick} ->
+        % this code block will be executed
             join_server(State, Channel, From, Nick)
     end.
 
 % Check to see if channel exist or not
-% If exist -> join that channel
-% If not exist -> Create and join
 join_server(State, Channel, From, Nick) ->
+    % current channels
     Channels = State#server_state.channels,
-    %NewChannels = 
     case lists:member(Channel, Channels) of
-        true ->
-            Channels;
-        false ->
-            channel:start(Channel)
+        % if channel is in the channel list
+            true ->
+            % return channels
+                Channels;
+            % if channel does not exist in list
+            false ->
+                % start the channel
+                channel:start(Channel)
     end,
-
-    ChannelResponse = genserver:request(list_to_atom(Channel), {join, Nick, From}),
+    % client (From) request to join channel, sent to channel_handler via genserver
+    ChannelRequest = genserver:request(list_to_atom(Channel), {join, Nick, From}),
     NewChannels = [Channel | Channels],
-
-    % Viktigt att inse här är att man måste skapa ett nytt state
-    % om man försöker passera samma "State" från input som output
-    % Kommer det inte bli ett uppdaterat state, utan ett samma state
-    % som passeras runt. Detta pga funktionellt språk och alla variablar
-    % (States) är statiska.
     UpdatedState = State#server_state{channels = NewChannels},
-    {reply, ChannelResponse, UpdatedState}.
+    {reply, ChannelRequest, UpdatedState}.
 
 % Stop the server process registered to the given name,
 % together with any other associated processes
 stop(ServerAtom) ->
-    % Added
-    genserver:stop(ServerAtom),
-    ServerAtom ! {stop, self(), 0},
-    ok.
-% TODO Implement function
-    % Return ok
-    % not_implemented.
+    % sending the stop to genserver
+    genserver:stop(ServerAtom).
+%    ok.
