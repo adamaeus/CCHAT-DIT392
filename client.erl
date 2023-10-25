@@ -33,7 +33,9 @@ channel_already_in_client_channel_list(St, Channel) ->
     % check if channel is a member of current channel list
     lists:member(Channel, ChannelList).
 
+
 %----------------------------------------------------------------
+% Needs to be changed so that client_already_in_channel_client_list
 
 % Join channel
 handle(St, {join, Channel}) ->
@@ -90,14 +92,22 @@ handle(St, {message_send, Channel, Msg}) ->
     case channel_already_in_client_channel_list(St, Channel) of
         % if the channel is in the list of the clients currently joined channels
         true ->
-            % catch keyword captures all types of exceptions on top of the good results
+            % the client requests to send a message
              genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
-                % if an exit message is sent from the genserver
 
                 {reply, ok, St};
         false ->
-            {reply, {error,user_not_joined, "Can't send message, user not in channel"}, St}
+            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
+                {'EXIT', _} ->
+                    {reply, {error, server_not_reached, "The server is not reached"}, St};
+               error ->
+                    {reply, {error, user_not_joined, "why doesn't it work"}, St}
+
+                        end
     end;
+
+            % catch keyword captures all types of exceptions on top of the good results
+                % if an exit message is sent from the genserver
 
 
 % This case is only relevant for the distinction assignment!

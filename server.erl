@@ -27,11 +27,12 @@ chat_handler(State, Data) ->
     % when Data pattern match to
         {join, From, Channel, Nick} ->
         % this code block will be executed
-            join_server(State, Channel, From, Nick)
+            join_channel(State, Channel, From, Nick)
     end.
 
-% Check to see if channel exist or not
-join_server(State, Channel, From, Nick) ->
+% Client request to join channel if the channel exists and if it doesn't
+% the channel is started and client reques to join.
+join_channel(State, Channel, From, Nick) ->
     % current channels
     Channels = State#server_state.channels,
     case lists:member(Channel, Channels) of
