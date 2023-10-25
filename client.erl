@@ -49,13 +49,17 @@ handle(St, {join, Channel}) ->
         % if channel is not in the client channel list
         false ->
             % client send request to genserver to join channel via chat_handler in server module
-            genserver:request(Server, {join, self(), Channel, Nickname}),
+            case catch genserver:request(Server, {join, self(), Channel, Nickname}) of
+                {'EXIT', _} ->
+                    {reply, {error, server_not_reached, "Unable to join server"}, St};
+                ok ->
             % channel is added to the clients channel list and saved in a variable
             UpdatedChannelList = [Channel | St#client_st.channels],
             % state is updated/overwritten with the updated list
             UpdatedState = St#client_st{channels = UpdatedChannelList},
             % client handle sends reply with updated state to gui
             {reply, ok, UpdatedState}
+                        end
     end;
 
 
