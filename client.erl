@@ -1,6 +1,8 @@
 -module(client).
 -export([handle/2, initial_state/3]).
 
+-import(channel, [client_already_in_channel_client_list/2]).
+
 % This record defines the structure of the state of a client.
 % Add whatever other fields you need.
 -record(client_st, {
@@ -53,6 +55,8 @@ handle(St, {join, Channel}) ->
             % client send request to genserver to join channel via chat_handler in server module
             case catch genserver:request(Server, {join, self(), Channel, Nickname}) of
                 {'EXIT', _} ->
+                    {reply, {error, server_not_reached, "Unable to join server"}, St};
+                timeout_error ->
                     {reply, {error, server_not_reached, "Unable to join server"}, St};
                 ok ->
             % channel is added to the clients channel list and saved in a variable
