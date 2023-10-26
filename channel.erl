@@ -62,3 +62,4 @@ sendMessage(State, From, Msg, Nick) ->
 client_already_in_channel_client_list(State, From) ->
     ClientList = State#channel_state.clients,
     lists:member(From, ClientList).
+

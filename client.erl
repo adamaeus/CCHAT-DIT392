@@ -35,7 +35,6 @@ channel_already_in_client_channel_list(St, Channel) ->
     % check if channel is a member of current channel list
     lists:member(Channel, ChannelList).
 
-
 %----------------------------------------------------------------
 % Needs to be changed so that client_already_in_channel_client_list
 
@@ -92,26 +91,33 @@ handle(St, {leave, Channel}) ->
 handle(St, {message_send, Channel, Msg}) ->
     % nickname saved in variable
     Nick = St#client_st.nick,
+
+ case whereis(St#client_st.server) of
+        undefined ->
+            {reply, {error, server_not_reached, "The server is not reachable"}, St};
+   _ServerAtom ->
     % pattern matching
     case channel_already_in_client_channel_list(St, Channel) of
         % if the channel is in the list of the clients currently joined channels
         true ->
             % the client requests to send a message
-             genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}),
+            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
+                ok ->
+                    {reply, ok, St}
+                end;
 
-                {reply, ok, St};
         false ->
             case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
                 {'EXIT', _} ->
                     {reply, {error, server_not_reached, "The server is not reached"}, St};
                error ->
                     {reply, {error, user_not_joined, "why doesn't it work"}, St}
-
                         end
-    end;
+                end
+   end;
 
-            % catch keyword captures all types of exceptions on top of the good results
-                % if an exit message is sent from the genserver
+% Kvarstående fel att lösa: Clienten kan skriva till kanalen även fast servern är död
+% Det ska den inte kunna göra!
 
 
 % This case is only relevant for the distinction assignment!
