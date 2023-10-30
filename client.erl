@@ -91,34 +91,24 @@ handle(St, {leave, Channel}) ->
 handle(St, {message_send, Channel, Msg}) ->
     % nickname saved in variable
     Nick = St#client_st.nick,
-
- case whereis(St#client_st.server) of
+    Server = St#client_st.server,
+    case whereis(list_to_atom(Channel)) of
         undefined ->
-            {reply, {error, server_not_reached, "The server is not reachable"}, St};
-   _ServerAtom ->
-    % pattern matching
-    case channel_already_in_client_channel_list(St, Channel) of
-        % if the channel is in the list of the clients currently joined channels
-        true ->
-            % the client requests to send a message
-            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
-                ok ->
-                    {reply, ok, St}
-                end;
-
-        false ->
-            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
-                {'EXIT', _} ->
-                    {reply, {error, server_not_reached, "The server is not reached"}, St};
-               error ->
-                    {reply, {error, user_not_joined, "why doesn't it work"}, St}
-                        end
-                end
-   end;
+            {reply, {error, server_not_reached, "The channel is not reachable"}, St};
+        ServerPid ->
+            case catch genserver:request(ServerPid, {message_send, Msg, self(), Nick}) of
+                        timeout_error ->
+                            {reply, {error, server_not_reached, "The server is not reached"}, St};
+                        Response ->
+                    {reply, Response, St}
+            end
+    end;
 
 % Kvarstående fel att lösa: Clienten kan skriva till kanalen även fast servern är död
 % Det ska den inte kunna göra!
-
+% Nu stannar båda testen i undefined men det ena testet nummer 2 är nöjd där vilket gör att det passar
+% Kill gör att channels fortfarande lever (test 1) och då ska kanalerna fortfarande kunna skicka meddelanden
+% men eftersom undefined inte är definierad att kunna skicka meddelanden i där så failar testet.
 
 % This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)

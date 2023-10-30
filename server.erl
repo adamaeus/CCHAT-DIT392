@@ -19,6 +19,7 @@ start(ServerAtom) ->
     State = initial_state(),
     genserver:start(ServerAtom, State, fun chat_handler/2).
 
+
 %   - takes 2 params : state, request message
 %   - returns a tuple: new state, response message
 %   - handler reply to genserver
