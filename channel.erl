@@ -1,5 +1,5 @@
 -module(channel).
--export([start/1, channel_handler/2, client_already_in_channel_client_list/2]).
+-export([start/1, channel_handler/2]).
 
 -record(channel_state, {
     name,
@@ -58,9 +58,4 @@ sendMessage(State, From, Msg, Nick) ->
             false ->
                 {reply, {error, user_not_joined, "User not joined."}, State}
             end.
-
-% Returns true if client is a member of the channels client list
-client_already_in_channel_client_list(State, From) ->
-    ClientList = State#channel_state.clients,
-    lists:member(From, ClientList).
 
