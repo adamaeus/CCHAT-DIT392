@@ -56,7 +56,7 @@ sendMessage(State, From, Msg, Nick) ->
                 Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, Nick, Msg}} end, NewList),
                 {reply, ok, State};
             false ->
-            {reply, error, State}
+                {reply, {error, user_not_joined, "User not joined."}, State}
             end.
 
 client_already_in_channel_client_list(State, From) ->

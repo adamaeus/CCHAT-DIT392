@@ -92,27 +92,17 @@ handle(St, {message_send, Channel, Msg}) ->
     % nickname saved in variable
     Nick = St#client_st.nick,
 
- case whereis(St#client_st.server) of
+ case whereis(list_to_atom(Channel)) of
         undefined ->
             {reply, {error, server_not_reached, "The server is not reachable"}, St};
-   _ServerAtom ->
-    % pattern matching
-    case channel_already_in_client_channel_list(St, Channel) of
-        % if the channel is in the list of the clients currently joined channels
-        true ->
-            % the client requests to send a message
-            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
-                ok ->
-                    {reply, ok, St}
-                end;
-
-        false ->
-            case catch genserver:request(list_to_atom(Channel), {message_send, Msg, self(), Nick}) of
-                {'EXIT', _} ->
-                    {reply, {error, server_not_reached, "The server is not reached"}, St};
-               error ->
-                    {reply, {error, user_not_joined, "why doesn't it work"}, St}
-                        end
+   ServerAtom ->
+            case catch genserver:request(ServerAtom, {message_send, Msg, self(), Nick}) of
+                    timeout_error ->
+                        Text = "Recipient does not respond.",
+                        Reply = {error, server_not_reached, Text},
+                        {reply, Reply, St};
+                    Response ->
+                        {reply, Response, St}
                 end
    end;
 

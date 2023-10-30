@@ -27,7 +27,11 @@ chat_handler(State, Data) ->
     % when Data pattern match to
         {join, From, Channel, Nick} ->
         % this code block will be executed
-            join_channel(State, Channel, From, Nick)
+            join_channel(State, Channel, From, Nick);
+        % when Data pattern match to
+        {stopChannels} ->
+        % this code block will be executed
+            handleStop(State)
     end.
 
 % Client request to join channel if the channel exists and if it doesn't
@@ -35,7 +39,11 @@ chat_handler(State, Data) ->
 join_channel(State, Channel, From, Nick) ->
     % current channels
     Channels = State#server_state.channels,
-    case lists:member(Channel, Channels) of
+
+% Upptäckte ett nytt fel. Vi sparar inte channels som atoms utan som strings.
+% detta blir problem då vi joinar och skickar meddelande. Dock tar det för lång
+% tid att ändra det nu. 
+    case lists:member(list_to_atom(Channel), Channels) of
         % if channel is in the channel list
             true ->
             % return channels
@@ -47,13 +55,21 @@ join_channel(State, Channel, From, Nick) ->
     end,
     % client (From) request to join channel, sent to channel_handler via genserver
     ChannelRequest = genserver:request(list_to_atom(Channel), {join, Nick, From}),
-    NewChannels = [Channel | Channels],
+    NewChannels = [list_to_atom(Channel) | Channels],
     UpdatedState = State#server_state{channels = NewChannels},
     {reply, ChannelRequest, UpdatedState}.
 
 % Stop the server process registered to the given name,
 % together with any other associated processes
 stop(ServerAtom) ->
-    % sending the stop to genserver
+    genserver:request(ServerAtom, {stopChannels}),
     genserver:stop(ServerAtom).
-%    ok.
+% Handles the request to stop all active channels.
+handleStop(State) ->
+    %ListToAtom = fun(Channel) -> list_to_atom(Channel) end,
+    %Channels = lists:foreach(ListToAtom, State#server_state.channels),
+   % Channels2 = State#server_state.channels,
+   Channels = State#server_state.channels,
+    StopChannel = fun(C) -> genserver:stop(C) end,
+    lists:foreach(StopChannel, Channels),
+    {reply, ok, State}.
