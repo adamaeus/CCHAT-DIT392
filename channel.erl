@@ -6,12 +6,14 @@
     clients
 }).
 
+% The starting state of a channel
 initial_state(Channel) ->
     #channel_state{
         name = Channel,
         clients = []
     }.
 
+% Start a new channel process with the given name
 start(Channel) ->
     State = initial_state(Channel),
     genserver:start(list_to_atom(Channel), State, fun channel_handler/2).
@@ -27,14 +29,13 @@ channel_handler(State, Request) ->
              sendMessage(State, From, Msg, Nick)
     end.
 
+% remove client from channel client list when client leaves channel
 removeFromChannel(State, From) ->
     NewChannelList = lists:delete(From, State#channel_state.clients),
    NewState = State#channel_state{clients = NewChannelList},
     {reply, ok, NewState}.
 
 add_to_channel_client_list(State, Nick, From) ->
-    %register(From, Nick),
-    %User = {From, Nick},
     case lists:member(From, State#channel_state.clients) of
         true ->
             {reply, error_already_joined, "Client already joined", State};
@@ -52,13 +53,13 @@ sendMessage(State, From, Msg, Nick) ->
         NewList = lists:delete(From, State#channel_state.clients),
         lists:foreach(
             fun(Member) ->
-                %MemberPid = getFromValue(Member),
                 Member ! {request, self(), make_ref(), {message_receive, State#channel_state.name, Nick, Msg}} end, NewList),
                 {reply, ok, State};
             false ->
                 {reply, {error, user_not_joined, "User not joined."}, State}
             end.
 
+% Returns true if client is a member of the channels client list
 client_already_in_channel_client_list(State, From) ->
     ClientList = State#channel_state.clients,
     lists:member(From, ClientList).
