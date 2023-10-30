@@ -1,10 +1,7 @@
 -module(client).
 -export([handle/2, initial_state/3]).
 
--import(channel, [client_already_in_channel_client_list/2]).
-
 % This record defines the structure of the state of a client.
-% Add whatever other fields you need.
 -record(client_st, {
     % atom of the GUI process
     gui,
@@ -26,8 +23,6 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
         channels = []
     }.
 
-%------------------------- FOR TESTS -----------------------------
-
 % Boolean function that checks if channel is already in the channel list
 channel_already_in_client_channel_list(St, Channel) ->
     % current channels saved in variable
@@ -35,8 +30,7 @@ channel_already_in_client_channel_list(St, Channel) ->
     % check if channel is a member of current channel list
     lists:member(Channel, ChannelList).
 
-%----------------------------------------------------------------
-% Needs to be changed so that client_already_in_channel_client_list
+
 
 % Join channel
 handle(St, {join, Channel}) ->
@@ -89,34 +83,23 @@ handle(St, {leave, Channel}) ->
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
-    % nickname saved in variable
     Nick = St#client_st.nick,
-
- case whereis(list_to_atom(Channel)) of
+    case whereis(list_to_atom(Channel)) of
         undefined ->
-            {reply, {error, server_not_reached, "The server is not reachable"}, St};
-   ServerAtom ->
-            case catch genserver:request(ServerAtom, {message_send, Msg, self(), Nick}) of
-                    timeout_error ->
-                        Text = "Recipient does not respond.",
-                        Reply = {error, server_not_reached, Text},
-                        {reply, Reply, St};
-                    Response ->
-                        {reply, Response, St}
-                end
-   end;
-
-% Kvarstående fel att lösa: Clienten kan skriva till kanalen även fast servern är död
-% Det ska den inte kunna göra!
+            {reply, {error, server_not_reached, "The channel is not reachable"}, St};
+        ServerPid ->
+            case catch genserver:request(ServerPid, {message_send, Msg, self(), Nick}) of
+                        timeout_error ->
+                            {reply, {error, server_not_reached, "The server is not reached"}, St};
+                        Response ->
+                    {reply, Response, St}
+            end
+    end;
 
 
-% This case is only relevant for the distinction assignment!
 % Change nick (no check, local only)
 handle(St, {nick, NewNick}) ->
     {reply, ok, St#client_st{nick = NewNick}};
-% ---------------------------------------------------------------------------
-% The cases below do not need to be changed...
-% But you should understand how they work!
 
 % Get current nick
 handle(St, whoami) ->
@@ -131,4 +114,4 @@ handle(St, quit) ->
     {reply, ok, St};
 % Catch-all for any unhandled requests
 handle(St, Data) ->
-    {reply, {error, not_implemented, "Client does not handle this command"}, St}.
+    {reply,{error, not_implemented, "Client does not handle this command"}, St}.
